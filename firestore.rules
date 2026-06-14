@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global safety net catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Reusable Global Primitive Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Validation Blueprints (Anti-Update-Gap)
+    function isValidSession(data) {
+      return data.keys().hasAll(['title', 'userId', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 4
+        && data.title is string
+        && data.title.size() <= 200
+        && data.userId is string
+        && data.userId == request.auth.uid
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['role', 'content', 'createdAt'])
+        && (data.keys().size() == 3 || (data.keys().size() == 4 && data.keys().hasAll(['groundingMetadata'])))
+        && data.role is string
+        && (data.role == 'user' || data.role == 'model')
+        && data.content is string
+        && data.content.size() <= 60000
+        && data.createdAt is timestamp
+        && (!data.keys().hasAll(['groundingMetadata']) || data.groundingMetadata == null || data.groundingMetadata is map);
+    }
+
+    // Sessions Collection matching
+    match /sessions/{sessionId} {
+      // Create session: require valid ID, validated shape, matching create/update times
+      allow create: if isSignedIn()
+        && isValidId(sessionId)
+        && isValidSession(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      // Update session: require correct ID, correct owner ID, immutable fields, and limited diff keys
+      allow update: if isSignedIn()
+        && isValidId(sessionId)
+        && isValidSession(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']);
+
+      // Delete session: only owner can delete
+      allow delete: if isSignedIn()
+        && isValidId(sessionId)
+        && existing().userId == request.auth.uid;
+
+      // Individual session view
+      allow get: if isSignedIn()
+        && isValidId(sessionId)
+        && existing().userId == request.auth.uid;
+
+      // Secure List Query: Enforces client filter on userId to prevent scanning database
+      allow list: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      // Individual message sub-collection
+      match /messages/{messageId} {
+        // Enforce parent session check: write can only happen if current user is owner of parent session
+        allow create: if isSignedIn()
+          && isValidId(sessionId)
+          && isValidId(messageId)
+          && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid
+          && isValidMessage(incoming())
+          && incoming().createdAt == request.time;
+
+        // View group's messages
+        allow read: if isSignedIn()
+          && isValidId(sessionId)
+          && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+
+        // Messages are immutable once generated - prevent revisionism and tampering
+        allow update, delete: if false;
+      }
+    }
+  }
+}

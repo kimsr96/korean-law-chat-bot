@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Session": {
+      "title": "Session",
+      "description": "A conversation session for the law chatbot",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title or subject of the conversation"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Authentication UID of the user who owns this session"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["title", "userId", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "An individual chat message within a session",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "model"],
+          "description": "The role of the dynamic message sender"
+        },
+        "content": {
+          "type": "string",
+          "description": "The markdown or text formatted conversation content"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "groundingMetadata": {
+          "type": "object",
+          "description": "Optional search grounding metadata returned by the Google Gemini API"
+        }
+      },
+      "required": ["role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Collection of chat sessions owned by authenticated users"
+    },
+    "/sessions/{sessionId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Subcollection containing individual message exchanges"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Noto Serif KR", Georgia, serif;
+  --font-sans: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom markdown accents matching raw editorial layouts */
+.markdown-body strong {
+  font-weight: 700;
+  color: #1A1A1A;
+  background-color: #F5F4EF;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  border-bottom: 2px solid #D93B2B;
+}

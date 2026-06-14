@@ -1,0 +1,6 @@
+{
+  "name": "국가법령 AI 챗봇",
+  "description": "대한민국의 다양한 법령정보를 찾아드리고 인공지능 기반의 친절한 법률 상담을 제공하는 똑똑한 국가법령 탐색 챗봇입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
